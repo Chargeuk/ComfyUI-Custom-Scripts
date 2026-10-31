@@ -8,9 +8,15 @@ from aiohttp import web
 
 def get_allowed_dirs():
     dir = os.path.abspath(os.path.join(__file__, "../../user"))
-    file = os.path.join(dir, "text_file_dirs.json")
+    # Keep machine-specific roots outside the shared tracked defaults. Read on
+    # every call so a local configuration change also refreshes node schemas.
+    local_file = os.path.join(dir, "text_file_dirs.local.json")
+    file = local_file if os.path.lexists(local_file) else os.path.join(dir, "text_file_dirs.json")
     with open(file, "r") as f:
-        return json.loads(f.read())
+        dirs = json.loads(f.read())
+    if not isinstance(dirs, dict) or not all(isinstance(value, str) for value in dirs.values()):
+        raise ValueError("Text file directories must be a JSON object mapping names to path patterns")
+    return dirs
 
 
 def get_valid_dirs():
